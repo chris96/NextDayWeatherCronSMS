@@ -100,20 +100,24 @@ def get_forecast(days_ahead: int = 1) -> dict:
 def format_sms_message(forecast: dict) -> str:
     date_obj = datetime.strptime(forecast["date_iso"], "%Y-%m-%d")
     date_str = date_obj.strftime("%b %d")
+    max_len = 160
 
+    # Option 1: compact multiline (preferred for readability).
     line1 = f"{date_str} Weather"
     line2 = LOCATION_NAME
     line3 = f"High {forecast['high_f']}F Low {forecast['low_f']}F"
     line4 = f"Rain {forecast['rain_chance']}%"
-    base = f"{line1}\n{line2}\n{line3}\n{line4}\n"
+    multiline = f"{line1}\n{line2}\n{line3}\n{line4}\n{forecast['summary']}"
+    if len(multiline) <= max_len:
+        return multiline
 
-    max_len = 160
-    remaining = max_len - len(base)
-    summary = forecast["summary"][: max(0, remaining)]
-    message = base + summary
-
-    # Hard cap to guarantee SMS-sized output.
-    return message[:max_len]
+    # Option 3: single-line summary fallback for strict SMS length safety.
+    single_line = (
+        f"{date_str} {LOCATION_NAME} "
+        f"High {forecast['high_f']}F Low {forecast['low_f']}F "
+        f"Rain {forecast['rain_chance']}% {forecast['summary']}"
+    )
+    return single_line[:max_len]
 
 
 def send_sms_via_email(gmail_user: str, gmail_app_password: str, message: str) -> None:
