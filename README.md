@@ -74,7 +74,7 @@ python weather_sms.py 1
 Workflow file: `.github/workflows/weather.yml`
 
 - Runs on schedule with:
-  - `cron: "57 3 * * *"`
+  - `cron: "57 2 * * *"`
 - Also supports manual run via `workflow_dispatch`.
 - Manual run supports an input:
   - `days_ahead` (`1` = tomorrow, `0` = today)
@@ -82,8 +82,8 @@ Workflow file: `.github/workflows/weather.yml`
 
 Important timezone note:
 - GitHub cron is UTC.
-- `57 3 * * *` is 11:57 PM Eastern Daylight Time (EDT, UTC-4).
-- During Standard Time (EST, UTC-5), this runs at 10:57 PM Eastern.
+- `57 2 * * *` is 10:57 PM Eastern Daylight Time (EDT, UTC-4).
+- During Standard Time (EST, UTC-5), this runs at 9:57 PM Eastern.
 
 ## Required GitHub Secrets
 
