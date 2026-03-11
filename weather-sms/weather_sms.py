@@ -9,11 +9,22 @@ import requests
 from dotenv import load_dotenv
 
 
-LOCATION_NAME = "Statesboro GA"
-LATITUDE = 32.4488
-LONGITUDE = -81.7832
-TIMEZONE = "America/New_York"
-SMS_GATEWAY = "6059639101@tmomail.net"
+DEFAULT_RECIPIENTS = [
+    {
+        "label": "Statesboro GA",
+        "gateway": "6059639101@tmomail.net",
+        "latitude": 32.4488,
+        "longitude": -81.7832,
+        "timezone": "America/New_York",
+    },
+    {
+        "label": "Dalton GA",
+        "gateway": "7066763764@vtext.com",
+        "latitude": 34.7698,
+        "longitude": -84.9702,
+        "timezone": "America/New_York",
+    },
+]
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
@@ -58,14 +69,56 @@ def get_target_date(timezone: str, days_ahead: int = 1) -> str:
     return target.date().isoformat()
 
 
-def get_forecast(days_ahead: int = 1) -> dict:
-    target_date = get_target_date(TIMEZONE, days_ahead=days_ahead)
+def parse_recipients() -> list[dict]:
+    # Format:
+    # RECIPIENTS=Label|email_to_sms_gateway|lat|lon|timezone;Label2|gateway2|lat|lon|timezone
+    # Example:
+    # RECIPIENTS=Statesboro GA|6059639101@tmomail.net|32.4488|-81.7832|America/New_York
+    raw = os.getenv("RECIPIENTS", "").strip()
+    if not raw:
+        return DEFAULT_RECIPIENTS.copy()
+
+    recipients = []
+    for part in raw.split(";"):
+        item = part.strip()
+        if not item:
+            continue
+        fields = [x.strip() for x in item.split("|")]
+        if len(fields) != 5:
+            raise RuntimeError(
+                "Invalid RECIPIENTS entry. Use: Label|gateway|lat|lon|timezone"
+            )
+        label, gateway, lat_str, lon_str, tz = fields
+        try:
+            lat = float(lat_str)
+            lon = float(lon_str)
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Invalid latitude/longitude in RECIPIENTS entry: {item}"
+            ) from exc
+        recipients.append(
+            {
+                "label": label,
+                "gateway": gateway,
+                "latitude": lat,
+                "longitude": lon,
+                "timezone": tz,
+            }
+        )
+
+    if not recipients:
+        raise RuntimeError("RECIPIENTS is set but no valid entries were found.")
+    return recipients
+
+
+def get_forecast(latitude: float, longitude: float, timezone: str, days_ahead: int = 1) -> dict:
+    target_date = get_target_date(timezone, days_ahead=days_ahead)
     params = {
-        "latitude": LATITUDE,
-        "longitude": LONGITUDE,
+        "latitude": latitude,
+        "longitude": longitude,
         "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode",
         "temperature_unit": "fahrenheit",
-        "timezone": TIMEZONE,
+        "timezone": timezone,
         "forecast_days": max(3, days_ahead + 2),
     }
 
@@ -97,14 +150,14 @@ def get_forecast(days_ahead: int = 1) -> dict:
     }
 
 
-def format_sms_message(forecast: dict) -> str:
+def format_sms_message(forecast: dict, location_name: str) -> str:
     date_obj = datetime.strptime(forecast["date_iso"], "%Y-%m-%d")
     date_str = date_obj.strftime("%b %d")
     max_len = 160
 
     # Option 1: compact multiline (preferred for readability).
     line1 = f"{date_str} Weather"
-    line2 = LOCATION_NAME
+    line2 = location_name
     line3 = f"High {forecast['high_f']}F Low {forecast['low_f']}F"
     line4 = f"Rain {forecast['rain_chance']}%"
     multiline = f"{line1}\n{line2}\n{line3}\n{line4}\n{forecast['summary']}"
@@ -113,14 +166,16 @@ def format_sms_message(forecast: dict) -> str:
 
     # Option 3: single-line summary fallback for strict SMS length safety.
     single_line = (
-        f"{date_str} {LOCATION_NAME} "
+        f"{date_str} {location_name} "
         f"High {forecast['high_f']}F Low {forecast['low_f']}F "
         f"Rain {forecast['rain_chance']}% {forecast['summary']}"
     )
     return single_line[:max_len]
 
 
-def send_sms_via_email(gmail_user: str, gmail_app_password: str, message: str) -> None:
+def send_sms_via_email(
+    gmail_user: str, gmail_app_password: str, gateway: str, message: str
+) -> None:
     subject = ""
     body = message
     email_message = f"Subject: {subject}\n\n{body}"
@@ -129,7 +184,7 @@ def send_sms_via_email(gmail_user: str, gmail_app_password: str, message: str) -
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
             server.login(gmail_user, gmail_app_password)
-            server.sendmail(gmail_user, SMS_GATEWAY, email_message.encode("utf-8"))
+            server.sendmail(gmail_user, gateway, email_message.encode("utf-8"))
     except smtplib.SMTPAuthenticationError as exc:
         raise RuntimeError(
             "SMTP auth failed. Use a Gmail App Password in GMAIL_APP_PASSWORD "
@@ -141,7 +196,7 @@ def send_sms_via_email(gmail_user: str, gmail_app_password: str, message: str) -
 
 def parse_days_ahead(argv: list[str]) -> int:
     if len(argv) < 2:
-        return 1
+        return 0
     raw_value = argv[1].strip()
     try:
         days_ahead = int(raw_value)
@@ -163,13 +218,41 @@ def main() -> int:
 
     try:
         days_ahead = parse_days_ahead(sys.argv)
-        forecast = get_forecast(days_ahead=days_ahead)
-        print(f"Preparing T+{days_ahead} forecast for {forecast['date_iso']} ({LOCATION_NAME})")
-        sms_message = format_sms_message(forecast)
-        print(f"SMS length: {len(sms_message)} characters")
-        send_sms_via_email(gmail_user, gmail_app_password, sms_message)
-        print("Success: Forecast SMS sent.")
-        return 0
+        recipients = parse_recipients()
+        test_mode = os.getenv("TEST_MODE", "").strip().lower() in {"1", "true", "yes"}
+        if test_mode:
+            recipients = [r for r in recipients if r["gateway"] == "6059639101@tmomail.net"]
+            if not recipients:
+                raise RuntimeError("TEST_MODE is enabled but primary test recipient was not found.")
+            print("TEST_MODE enabled: sending only to 6059639101@tmomail.net")
+        any_failure = False
+
+        for recipient in recipients:
+            label = recipient["label"]
+            gateway = recipient["gateway"]
+            latitude = recipient["latitude"]
+            longitude = recipient["longitude"]
+            timezone = recipient["timezone"]
+
+            try:
+                forecast = get_forecast(
+                    latitude=latitude,
+                    longitude=longitude,
+                    timezone=timezone,
+                    days_ahead=days_ahead,
+                )
+                print(f"Preparing T+{days_ahead} forecast for {forecast['date_iso']} ({label})")
+
+                sms_message = format_sms_message(forecast, label)
+
+                print(f"SMS length for {gateway}: {len(sms_message)} characters")
+                send_sms_via_email(gmail_user, gmail_app_password, gateway, sms_message)
+                print(f"Success: Forecast SMS sent to {gateway}.")
+            except Exception as recipient_exc:
+                any_failure = True
+                print(f"ERROR for {gateway}: {recipient_exc}")
+
+        return 1 if any_failure else 0
     except Exception as exc:
         print(f"ERROR: {exc}")
         return 1

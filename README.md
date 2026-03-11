@@ -1,6 +1,6 @@
 # NextDayWeatherCronSMS
 
-Daily Python automation that sends tomorrow's weather forecast (T+1) to a phone via email-to-SMS gateway.
+Daily Python automation that sends weather forecasts to phones via email-to-SMS gateways.
 
 ## Branch Goal (`codex/formatting-text`)
 
@@ -21,10 +21,13 @@ This branch focuses on improving SMS text formatting so messages are more visual
 ## Overview
 
 - Location: Statesboro, Georgia, USA
-- Delivery target: `6059639101@tmomail.net` (Mint Mobile / T-Mobile network)
+- Delivery targets (default):
+  - `6059639101@tmomail.net` (Statesboro GA forecast)
+  - `7066763764@vtext.com` (Dalton GA forecast)
 - Data source: Open-Meteo (no API key)
 - Runtime: Python 3
 - Automation: GitHub Actions scheduled workflow + manual trigger
+- Supports multiple recipients, each with its own location forecast
 - Includes:
   - Forecast date
   - High temperature
@@ -70,6 +73,23 @@ Notes:
 - Use a Gmail App Password (not your normal account password).
 - Keep `.env` local and private.
 
+Optional multi-recipient config:
+
+```env
+# Label|gateway_email|latitude|longitude|timezone;Label2|gateway2|latitude2|longitude2|timezone2
+RECIPIENTS=Statesboro GA|6059639101@tmomail.net|32.4488|-81.7832|America/New_York;Dalton GA|7066763764@vtext.com|34.7698|-84.9702|America/New_York
+```
+
+If `RECIPIENTS` is not set, the script uses the built-in two-recipient defaults above.
+
+Optional test mode:
+
+```env
+TEST_MODE=true
+```
+
+When `TEST_MODE=true`, the script sends only to `6059639101@tmomail.net`.
+
 ## Test Locally
 
 From the `weather-sms/` directory:
@@ -81,8 +101,8 @@ python weather_sms.py
 Optional manual offset:
 
 ```bash
-# 1 = tomorrow (default), 0 = today, 2 = day after tomorrow
-python weather_sms.py 1
+# 0 = today (default), 1 = tomorrow, 2 = day after tomorrow
+python weather_sms.py 0
 ```
 
 ## Automation
@@ -90,16 +110,17 @@ python weather_sms.py 1
 Workflow file: `.github/workflows/weather.yml`
 
 - Runs on schedule with:
-  - `cron: "57 2 * * *"`
+  - `cron: "57 11 * * *"`
 - Also supports manual run via `workflow_dispatch`.
 - Manual run supports an input:
-  - `days_ahead` (`1` = tomorrow, `0` = today)
+  - `days_ahead` (`0` = today, `1` = tomorrow)
+  - `test_mode` (`true`/`false`) to send only to `6059639101@tmomail.net`
 - Installs dependencies and executes `python weather_sms.py`.
 
 Important timezone note:
 - GitHub cron is UTC.
-- `57 2 * * *` is 10:57 PM Eastern Daylight Time (EDT, UTC-4).
-- During Standard Time (EST, UTC-5), this runs at 9:57 PM Eastern.
+- `57 11 * * *` is 7:57 AM Eastern Daylight Time (EDT, UTC-4).
+- During Standard Time (EST, UTC-5), this runs at 6:57 AM Eastern.
 
 ## Required GitHub Secrets
 
