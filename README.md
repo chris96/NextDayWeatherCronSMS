@@ -25,6 +25,7 @@ This branch focuses on improving SMS text formatting so messages are more visual
 - Data source: Open-Meteo (no API key)
 - Runtime: Python 3
 - Automation: GitHub Actions scheduled workflow + manual trigger
+- Supports multiple recipients, each with its own location forecast
 - Includes:
   - Forecast date
   - High temperature
@@ -69,6 +70,15 @@ GMAIL_APP_PASSWORD=your_app_password
 Notes:
 - Use a Gmail App Password (not your normal account password).
 - Keep `.env` local and private.
+
+Optional multi-recipient config:
+
+```env
+# Label|gateway_email|latitude|longitude|timezone;Label2|gateway2|latitude2|longitude2|timezone2
+RECIPIENTS=Statesboro GA|6059639101@tmomail.net|32.4488|-81.7832|America/New_York;Atlanta GA|5551234567@vtext.com|33.7490|-84.3880|America/New_York
+```
+
+If `RECIPIENTS` is not set, the script uses the built-in single recipient default.
 
 ## Test Locally
 
