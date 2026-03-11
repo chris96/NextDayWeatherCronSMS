@@ -94,7 +94,6 @@ Workflow file: `.github/workflows/weather.yml`
 - Also supports manual run via `workflow_dispatch`.
 - Manual run supports an input:
   - `days_ahead` (`1` = tomorrow, `0` = today)
-  - `force_single_line` (`true`/`false`) to test single-line fallback format
 - Installs dependencies and executes `python weather_sms.py`.
 
 Important timezone note:

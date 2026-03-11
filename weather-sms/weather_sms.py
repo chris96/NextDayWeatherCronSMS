@@ -97,7 +97,7 @@ def get_forecast(days_ahead: int = 1) -> dict:
     }
 
 
-def format_sms_message(forecast: dict, force_single_line: bool = False) -> str:
+def format_sms_message(forecast: dict) -> str:
     date_obj = datetime.strptime(forecast["date_iso"], "%Y-%m-%d")
     date_str = date_obj.strftime("%b %d")
     max_len = 160
@@ -108,7 +108,7 @@ def format_sms_message(forecast: dict, force_single_line: bool = False) -> str:
     line3 = f"High {forecast['high_f']}F Low {forecast['low_f']}F"
     line4 = f"Rain {forecast['rain_chance']}%"
     multiline = f"{line1}\n{line2}\n{line3}\n{line4}\n{forecast['summary']}"
-    if not force_single_line and len(multiline) <= max_len:
+    if len(multiline) <= max_len:
         return multiline
 
     # Option 3: single-line summary fallback for strict SMS length safety.
@@ -161,15 +161,11 @@ def main() -> int:
         print("ERROR: Missing GMAIL_USER or GMAIL_APP_PASSWORD in environment.")
         return 1
 
-    force_single_line = os.getenv("FORCE_SINGLE_LINE", "").strip().lower() in {"1", "true", "yes"}
-
     try:
         days_ahead = parse_days_ahead(sys.argv)
         forecast = get_forecast(days_ahead=days_ahead)
         print(f"Preparing T+{days_ahead} forecast for {forecast['date_iso']} ({LOCATION_NAME})")
-        if force_single_line:
-            print("FORCE_SINGLE_LINE enabled: using single-line SMS format.")
-        sms_message = format_sms_message(forecast, force_single_line=force_single_line)
+        sms_message = format_sms_message(forecast)
         print(f"SMS length: {len(sms_message)} characters")
         send_sms_via_email(gmail_user, gmail_app_password, sms_message)
         print("Success: Forecast SMS sent.")
