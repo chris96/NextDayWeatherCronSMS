@@ -41,7 +41,7 @@ The workflow file `.github/workflows/weather.yml` runs daily using UTC cron:
 
 - `0 5 * * *` (midnight EST, 1:00 AM EDT)
 
-It also supports manual runs with `workflow_dispatch`.
+It also supports manual runs with `workflow_dispatch` and a `days_ahead` input (`1` = tomorrow, `0` = today).
 
 ## Detailed Docs
 

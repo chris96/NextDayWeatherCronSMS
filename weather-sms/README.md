@@ -61,6 +61,13 @@ From the `weather-sms/` directory:
 python weather_sms.py
 ```
 
+Optional manual offset:
+
+```bash
+# 1 = tomorrow (default), 0 = today, 2 = day after tomorrow
+python weather_sms.py 1
+```
+
 Expected logs:
 - The T+1 forecast date being sent
 - SMS character length
@@ -73,6 +80,8 @@ Workflow file: `.github/workflows/weather.yml`
 - Runs on schedule with:
   - `cron: "0 5 * * *"`
 - Also supports manual run via `workflow_dispatch`.
+- Manual run supports an input:
+  - `days_ahead` (`1` = tomorrow, `0` = today)
 - Installs dependencies and executes `python weather_sms.py`.
 
 Important timezone note:
@@ -86,3 +95,8 @@ Set these repository secrets:
 
 - `GMAIL_USER`
 - `GMAIL_APP_PASSWORD`
+
+If you see `Application-specific password required`:
+- Enable Google 2-Step Verification on the Gmail account.
+- Create a Gmail App Password.
+- Store that 16-character app password in `GMAIL_APP_PASSWORD` (no spaces).

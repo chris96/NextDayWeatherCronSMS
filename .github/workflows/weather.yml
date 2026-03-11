@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "0 5 * * *"
   workflow_dispatch:
+    inputs:
+      days_ahead:
+        description: "Forecast offset in days (1 = tomorrow, 0 = today)"
+        required: true
+        default: "1"
 
 jobs:
   send-weather-sms:
@@ -24,7 +29,7 @@ jobs:
         working-directory: weather-sms
 
       - name: Run weather SMS script
-        run: python weather_sms.py
+        run: python weather_sms.py "${{ github.event.inputs.days_ahead || '1' }}"
         working-directory: weather-sms
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
