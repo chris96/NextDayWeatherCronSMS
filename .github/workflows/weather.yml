@@ -2,7 +2,7 @@ name: Send Tomorrow Weather SMS
 
 on:
   schedule:
-    - cron: "0 4 * * *"
+    - cron: "57 3 * * *"
   workflow_dispatch:
     inputs:
       days_ahead:
