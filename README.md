@@ -6,15 +6,15 @@ Daily Python automation that sends tomorrow's weather forecast (T+1) to a phone 
 
 This branch focuses on improving SMS text formatting so messages are more visually pleasing while staying concise and reliable for carrier delivery.
 
-## Text Formatting Options (Planning)
+## Text Formatting Options
 
-1. Compact multiline (recommended)
+1. Compact multiline (implemented)
    - Keep 4-5 short lines with clear labels, e.g. `High 71F Low 52F`, `Rain 30%`.
    - Best balance of readability and low character count.
 2. Emoji-lite style
    - Use 1-2 symbols, e.g. `H:71F L:52F`, `Rain:30%`, `Summary`.
    - More personality, but some carriers/devices may render inconsistently.
-3. Single-line summary fallback
+3. Single-line summary fallback (implemented)
    - One line under 160 chars for strict delivery safety.
    - Most robust, but least readable.
 
@@ -94,6 +94,7 @@ Workflow file: `.github/workflows/weather.yml`
 - Also supports manual run via `workflow_dispatch`.
 - Manual run supports an input:
   - `days_ahead` (`1` = tomorrow, `0` = today)
+  - `force_single_line` (`true`/`false`) to test single-line fallback format
 - Installs dependencies and executes `python weather_sms.py`.
 
 Important timezone note:

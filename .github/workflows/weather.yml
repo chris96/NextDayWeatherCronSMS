@@ -9,6 +9,10 @@ on:
         description: "Forecast offset in days (1 = tomorrow, 0 = today)"
         required: true
         default: "1"
+      force_single_line:
+        description: "Force single-line SMS format for testing (true/false)"
+        required: true
+        default: "false"
 
 jobs:
   send-weather-sms:
@@ -34,3 +38,4 @@ jobs:
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          FORCE_SINGLE_LINE: ${{ github.event.inputs.force_single_line || 'false' }}
