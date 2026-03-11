@@ -2,6 +2,22 @@
 
 Daily Python automation that sends tomorrow's weather forecast (T+1) to a phone via email-to-SMS gateway.
 
+## Branch Goal (`codex/formatting-text`)
+
+This branch focuses on improving SMS text formatting so messages are more visually pleasing while staying concise and reliable for carrier delivery.
+
+## Text Formatting Options (Planning)
+
+1. Compact multiline (recommended)
+   - Keep 4-5 short lines with clear labels, e.g. `High 71F Low 52F`, `Rain 30%`.
+   - Best balance of readability and low character count.
+2. Emoji-lite style
+   - Use 1-2 symbols, e.g. `H:71F L:52F`, `Rain:30%`, `Summary`.
+   - More personality, but some carriers/devices may render inconsistently.
+3. Single-line summary fallback
+   - One line under 160 chars for strict delivery safety.
+   - Most robust, but least readable.
+
 ## Overview
 
 - Location: Statesboro, Georgia, USA
