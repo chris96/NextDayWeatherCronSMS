@@ -9,11 +9,22 @@ import requests
 from dotenv import load_dotenv
 
 
-LOCATION_NAME = "Statesboro GA"
-LATITUDE = 32.4488
-LONGITUDE = -81.7832
-TIMEZONE = "America/New_York"
-SMS_GATEWAY = "6059639101@tmomail.net"
+DEFAULT_RECIPIENTS = [
+    {
+        "label": "Statesboro GA",
+        "gateway": "6059639101@tmomail.net",
+        "latitude": 32.4488,
+        "longitude": -81.7832,
+        "timezone": "America/New_York",
+    },
+    {
+        "label": "Dalton GA",
+        "gateway": "7066763764@vtext.com",
+        "latitude": 34.7698,
+        "longitude": -84.9702,
+        "timezone": "America/New_York",
+    },
+]
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
@@ -65,15 +76,7 @@ def parse_recipients() -> list[dict]:
     # RECIPIENTS=Statesboro GA|6059639101@tmomail.net|32.4488|-81.7832|America/New_York
     raw = os.getenv("RECIPIENTS", "").strip()
     if not raw:
-        return [
-            {
-                "label": LOCATION_NAME,
-                "gateway": SMS_GATEWAY,
-                "latitude": LATITUDE,
-                "longitude": LONGITUDE,
-                "timezone": TIMEZONE,
-            }
-        ]
+        return DEFAULT_RECIPIENTS.copy()
 
     recipients = []
     for part in raw.split(";"):
@@ -193,7 +196,7 @@ def send_sms_via_email(
 
 def parse_days_ahead(argv: list[str]) -> int:
     if len(argv) < 2:
-        return 1
+        return 0
     raw_value = argv[1].strip()
     try:
         days_ahead = int(raw_value)
@@ -216,6 +219,12 @@ def main() -> int:
     try:
         days_ahead = parse_days_ahead(sys.argv)
         recipients = parse_recipients()
+        test_mode = os.getenv("TEST_MODE", "").strip().lower() in {"1", "true", "yes"}
+        if test_mode:
+            recipients = [r for r in recipients if r["gateway"] == "6059639101@tmomail.net"]
+            if not recipients:
+                raise RuntimeError("TEST_MODE is enabled but primary test recipient was not found.")
+            print("TEST_MODE enabled: sending only to 6059639101@tmomail.net")
         any_failure = False
 
         for recipient in recipients:
